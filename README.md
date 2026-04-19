@@ -79,5 +79,4 @@ LICENSE
 
 ## License
 
-This repository currently includes the MIT license as a permissive default open-source license.
-If you want a different license, replace or remove the `LICENSE` file before publishing future versions.
+MIT
