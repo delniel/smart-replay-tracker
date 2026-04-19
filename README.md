@@ -89,6 +89,7 @@ Detailed setup guide with screenshots:
 - On some OBS builds, Replay Buffer does not expose a usable early `saving` signal.
 - Because of that, the final rename happens after OBS saves the replay file.
 - This is expected behavior for this project.
+- If OBS `Auto Remux` is enabled, the final moved file may be `mp4` only. This is expected.
 
 ## Repository structure
 

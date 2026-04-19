@@ -2,7 +2,7 @@ obs = obslua
 
 local SCRIPT_TAG = "replay_file_organizer"
 local DEFAULT_LABEL = "Desktop"
-local DATETIME_TOKENS = "%CCYY-%MM-%DD %hh-%mm-%ss"
+local DEFAULT_FILENAME_TEMPLATE = "%CCYY-%MM-%DD %hh-%mm-%ss"
 local BRIDGE_PLUGIN_NAME = "smart-replay-tracker"
 
 local settings_ref = nil
@@ -86,6 +86,48 @@ local function get_time_ns()
         return obs.os_gettime_ns()
     end
     return os.time() * 1000000000
+end
+
+local function get_output_filename_template(preferred_template)
+    local value = trim(preferred_template or "")
+    if value ~= "" then
+        return value
+    end
+
+    local cfg = obs.obs_frontend_get_profile_config()
+    if cfg ~= nil then
+        value = trim(obs.config_get_string(cfg, "Output", "FilenameFormatting") or "")
+    end
+
+    if value == "" then
+        value = DEFAULT_FILENAME_TEMPLATE
+    end
+
+    return value
+end
+
+local function render_filename_template(template, timestamp)
+    local when = timestamp or os.time()
+    local rendered = get_output_filename_template(template)
+
+    rendered = rendered:gsub("%%CCYY", os.date("%Y", when))
+    rendered = rendered:gsub("%%YY", os.date("%y", when))
+    rendered = rendered:gsub("%%MM", os.date("%m", when))
+    rendered = rendered:gsub("%%DD", os.date("%d", when))
+    rendered = rendered:gsub("%%hh", os.date("%H", when))
+    rendered = rendered:gsub("%%mm", os.date("%M", when))
+    rendered = rendered:gsub("%%ss", os.date("%S", when))
+
+    return trim(rendered)
+end
+
+local function build_target_stem(prefix, timestamp, preferred_template)
+    local safe_prefix = normalize_segment(prefix)
+    local rendered_suffix = render_filename_template(preferred_template, timestamp)
+    if rendered_suffix == "" then
+        return safe_prefix
+    end
+    return safe_prefix .. " " .. rendered_suffix
 end
 
 local function parse_rule_block(block)
@@ -522,9 +564,18 @@ local function bridge_candidate_from_state(prefer_save_candidate)
     end
 
     local prefix = prefer_save_candidate and "save_candidate_" or "foreground_"
+    local candidate_timestamp = tonumber(state[prefix .. "timestamp_ns"] or "0") or 0
+    local foreground_timestamp = tonumber(state["foreground_timestamp_ns"] or "0") or 0
+    local save_in_progress = trim(state["save_in_progress"] or "") == "1"
     local exe_path = lower(trim(state[prefix .. "exe_path"] or ""))
     local basename = lower(trim(state[prefix .. "exe_basename"] or ""))
     local title = lower(trim(state[prefix .. "title"] or ""))
+
+    if prefer_save_candidate and not save_in_progress and
+       foreground_timestamp > 0 and candidate_timestamp > 0 and
+       foreground_timestamp > candidate_timestamp then
+        return bridge_candidate_from_state(false)
+    end
 
     if basename == "" and exe_path == "" and title == "" then
         if prefer_save_candidate then
@@ -656,7 +707,7 @@ end
 local function safe_build_replay_format(prefer_save_candidate)
     local ok, format, info = pcall(function()
         local routing = build_runtime_routing(prefer_save_candidate)
-        local format = routing.folder .. "/" .. routing.prefix .. " " .. DATETIME_TOKENS
+        local format = routing.folder .. "/" .. routing.prefix .. " " .. get_output_filename_template()
         return format, routing
     end)
 
@@ -665,7 +716,7 @@ local function safe_build_replay_format(prefer_save_candidate)
     end
 
     debug_log("format build error")
-    return DEFAULT_LABEL .. "/" .. DEFAULT_LABEL .. " " .. DATETIME_TOKENS, {
+    return DEFAULT_LABEL .. "/" .. DEFAULT_LABEL .. " " .. get_output_filename_template(), {
         label = DEFAULT_LABEL,
         prefix = DEFAULT_LABEL,
         folder = DEFAULT_LABEL,
@@ -703,7 +754,15 @@ local function get_output_directory_and_extension()
 
     directory = directory:gsub('"', "")
     extension = extension:gsub("^%.*", "")
+    extension = lower(extension)
     if extension == "" then
+        extension = "mp4"
+    end
+    if extension == "hybrid_mp4" then
+        extension = "mp4"
+    end
+
+    if obs.config_get_bool ~= nil and cfg ~= nil and obs.config_get_bool(cfg, "Video", "AutoRemux") and extension == "mkv" then
         extension = "mp4"
     end
 
@@ -712,7 +771,7 @@ end
 
 local function build_formatting_preview_text()
     local _, info = safe_build_replay_format(false)
-    local preview_name = tostring(info.prefix or DEFAULT_LABEL) .. " " .. os.date("%d.%m.%Y %H-%M")
+    local preview_name = build_target_stem(tostring(info.prefix or DEFAULT_LABEL), os.time())
     local output_dir, extension = get_output_directory_and_extension()
     local full_path = preview_name .. "." .. extension
 
@@ -737,6 +796,7 @@ local function write_bridge_move_request(folder, prefix)
         return false, "bridge request path unavailable"
     end
 
+    local target_stem = build_target_stem(prefix, os.time())
     local file = io.open(path, "wb")
     if file == nil then
         return false, "failed to open bridge request file"
@@ -745,6 +805,7 @@ local function write_bridge_move_request(folder, prefix)
     file:write("version=1\n")
     file:write("folder=", tostring(normalize_segment(folder)), "\n")
     file:write("prefix=", tostring(normalize_segment(prefix)), "\n")
+    file:write("target_stem=", tostring(target_stem), "\n")
     file:close()
     return true, path
 end
@@ -927,7 +988,7 @@ local function apply_replay_config_fallback(folder_name, prefix_name)
         cfg,
         "Output",
         "FilenameFormatting",
-        normalize_segment(prefix_name) .. " " .. DATETIME_TOKENS
+        normalize_segment(prefix_name) .. " " .. get_output_filename_template(replay_old_filename_format)
     )
 end
 

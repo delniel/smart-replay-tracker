@@ -33,6 +33,8 @@ The plugin and the script work together like this:
 7. The script builds the target folder name, file name prefix, and preview text.
 8. The plugin moves the saved replay file to the final destination after OBS finishes saving it.
 
+If OBS `Auto Remux` is enabled, the final moved file may be `mp4` only. That is expected and does not mean the rename failed.
+
 ## What "hooked" means here
 
 Some OBS sources can expose the executable or window information of the app they are capturing. In practice, this is what people usually mean here by a source being "hooked" or by OBS having a usable hook for that source.

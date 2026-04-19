@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.2
+
+- Fixed stale replay routing when OBS does not expose a working `saving` signal
+- Improved fallback logic so the script is less likely to keep using the previous game's folder and name
+- Added support for carrying the current filename template into the final replay target stem
+- Updated the bundled DLL and Lua script in `release/`
+- Clarified `Auto Remux` behavior in the documentation
+
 ## v1.0.1
 
 - Rewrote the main documentation in English
