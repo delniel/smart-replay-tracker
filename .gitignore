@@ -1,0 +1,14 @@
+# OS
+Thumbs.db
+desktop.ini
+
+# Editors
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
