@@ -15,6 +15,32 @@ Windows plugin + Lua script for OBS Studio that organize Replay Buffer clips int
 - Moves the final replay into the correct folder after save
 - Avoids restarting Replay Buffer on every window switch
 
+## Why this project exists
+
+I wanted OBS Replay Buffer clips to behave more like the "instant replay" experience people expect from tools such as NVIDIA ShadowPlay or AMD ReLive: save a clip and get a meaningful game-based file name automatically.
+
+Renaming **normal recordings** is not the hard part. There are already scripts that can change the recording name before a standard OBS recording starts, because OBS exposes a clean moment before the file is created.
+
+Replay Buffer is different. On many OBS builds, there is no reliable early hook for changing the final Replay Buffer file name and folder before OBS writes the file. The most obvious workaround is:
+
+1. let OBS save `Replay ...`
+2. find the newest saved file afterwards
+3. rename or move it from a script
+
+That approach can work, but it is fragile:
+
+- timing races
+- file locks
+- remux timing issues
+- unreliable "find the latest file" logic
+
+That is why this project uses **two parts together**:
+
+- the plugin handles foreground app tracking, replay path detection, and safe file moving on Windows
+- the script handles OBS-side logic: source selection, exclusions, mappings, folder/name generation, and formatting preview
+
+In short: the existing idea of "rename OBS output with a script" already works for normal recording. This project extends that idea to Replay Buffer by pairing the script with a native plugin so the saved replay file can be moved and renamed much more reliably.
+
 ## Why there are two files
 
 The project is split into two parts on purpose:

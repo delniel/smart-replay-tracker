@@ -1,264 +1,260 @@
-# Настройка скрипта Replay File Organizer
+# Replay File Organizer Configuration Guide
 
-Это подробная инструкция по настройке Lua-скрипта `replay-file-organizer.lua`.
+This guide explains how to configure `replay-file-organizer.lua` in OBS.
 
-Если коротко:
+If you only want the short version:
 
-- `smart-replay-tracker.dll` отслеживает последнее подходящее активное приложение и после сохранения двигает файл.
-- `replay-file-organizer.lua` решает, **как именно должен называться клип и в какую папку он должен попасть**.
+- `smart-replay-tracker.dll` watches the last relevant active app and safely moves the saved replay file.
+- `replay-file-organizer.lua` decides **what the clip should be called and which folder it should go to**.
 
-Именно поэтому самые важные части настройки здесь:
+That makes these three areas the most important parts of the configuration:
 
 - `Priority Sources`
 - `Excluded Sources`
 - `Mappings`
 
-## Как скрипт вообще принимает решение
+`Excluded Sources` and `Mappings` are especially important, because they are what make the result predictable instead of random.
 
-Скрипт и плагин работают вместе по такой схеме:
+## How the config works
 
-1. Плагин следит за последним активным приложением и записывает это в `state.txt`.
-2. Когда ты сохраняешь Replay Buffer, скрипт читает состояние плагина.
-3. Потом скрипт смотрит на OBS-источники, которые ты добавил в `Priority Sources`.
-4. Если среди них есть подходящий активный источник, скрипт пытается получить из него хук приложения:
+The plugin and the script work together like this:
 
-   - executable
-   - title
-   - source name
-
-5. Затем скрипт применяет `Mappings`.
-6. Если источник находится в `Excluded Sources`, он полностью игнорируется.
-7. В итоге скрипт строит:
-
-   - имя папки
-   - имя файла
-   - превью пути в `Formatting Result`
-
-После этого уже плагин переносит сохранённый replay в нужную папку и под нужным именем.
-
-## Откуда берётся имя игры
-
-Скрипт пытается определить название в таком порядке:
-
-1. Сначала он смотрит данные из плагина о последнем приложении перед сохранением.
-2. Потом пытается сопоставить это приложение с активными OBS-источниками.
-3. Если есть совпадение по `Mappings`, то именно `Mappings` задают итоговое имя.
-4. Если `Mappings` не подошли, скрипт пытается построить имя автоматически из:
+1. The plugin watches the last relevant active app and writes that information to its state file.
+2. When you save Replay Buffer, the script reads the plugin state.
+3. The script then looks at the OBS sources you added to `Priority Sources`.
+4. If one of those sources is active and usable, the script tries to get app information from it:
 
    - executable
-   - title окна
+   - window title
    - source name
 
-5. Если ничего надёжного не найдено, используется запасной вариант `Desktop`.
+5. The script applies your `Mappings`.
+6. Any source that appears in `Excluded Sources` is ignored completely.
+7. The script builds the target folder name, file name prefix, and preview text.
+8. The plugin moves the saved replay file to the final destination after OBS finishes saving it.
 
-## Какие источники особенно важны
+## What "hooked" means here
 
-Скрипт лучше всего работает с источниками, из которых OBS может получить имя процесса или окна. Обычно это:
+Some OBS sources can expose the executable or window information of the app they are capturing. In practice, this is what people usually mean here by a source being "hooked" or by OBS having a usable hook for that source.
+
+That is why the script works best with sources such as:
 
 - `Game Capture`
 - `Window Capture`
 - `Application Audio Capture` / `wasapi_process_output_capture`
 
-Если игра добавлена в OBS как источник, и этот источник реально даёт OBS имя исполняемого файла, скрипту гораздо легче выбрать правильное название.
+If OBS can see the executable or title of a game through one of your sources, the script has much more reliable data to work with.
+
+## Where the game name comes from
+
+The script tries to decide the name in this order:
+
+1. It checks the plugin state for the last relevant app before the replay save.
+2. It tries to match that app against your active OBS sources.
+3. If a `Mappings` rule matches, that rule wins.
+4. If no mapping matches, it tries to build a name automatically from:
+
+   - executable
+   - window title
+   - source name
+
+5. If nothing reliable is found, it falls back to `Desktop`.
 
 ## Priority Sources
 
 ![Priority Sources](../screenshots/priority-sources.png)
 
-### Что это такое
+### What this section is for
 
-`Priority Sources` — это главный список источников, которым скрипт доверяет в первую очередь.
+`Priority Sources` is the main list of sources the script trusts first.
 
-Если в сцене одновременно активны несколько источников, скрипт сначала проверяет именно этот список, а уже потом уходит в более общий fallback-поиск по сцене.
+If several sources are active at the same time, the script checks this list before falling back to a broader scene scan.
 
-### Почему порядок важен
+### Why order matters
 
-Порядок в `Priority Sources` имеет значение.
+The order of `Priority Sources` matters.
 
-Если несколько источников одновременно подходят, скрипт раньше посмотрит те, которые стоят выше в списке.
+If several sources could match, the ones higher in the list are checked first. So if a game source should win over something else, keep it higher.
 
-### Что делают элементы сверху
+### Controls in this section
 
 #### Enable Script
 
-Включает и выключает весь Lua-скрипт.
+Turns the Lua script on or off.
 
-Если снять галочку, логика именования и маршрутизации работать не будет.
+If this is disabled, the script stops handling naming logic and replay routing.
 
 #### Enable Debug Logging
 
-Включает подробные записи в лог OBS.
+Adds more detailed information to the OBS log.
 
-Полезно для диагностики, если имя определяется не так, как ты ожидал.
-
-Для обычной работы можно оставить выключенным.
+This is useful for troubleshooting when the chosen name is not what you expected. For normal daily use, you can keep it off.
 
 #### Refresh Sources
 
-Обновляет список `Available Sources` по текущей сцене.
+Refreshes the `Available Sources` list from the current OBS scene.
 
-Используй эту кнопку, если:
+Use this after:
 
-- добавил новый источник в OBS
-- переименовал источник
-- переключился на другую сцену
+- adding a new source
+- renaming a source
+- switching to another scene
 
 #### Available Sources
 
-Это выпадающий список источников, найденных в текущей сцене.
+This is the dropdown list of sources found in the current scene.
 
-Из него ты выбираешь конкретный источник, который хочешь добавить в `Priority Sources`.
+You choose a source here before adding it to `Priority Sources`.
 
 #### Add Selected
 
-Добавляет выбранный источник из `Available Sources` в `Priority Sources`.
+Adds the selected source from `Available Sources` to `Priority Sources`.
 
-Если этот источник раньше был в `Excluded Sources`, он будет убран из исключений.
+If the same source was previously excluded, it is removed from `Excluded Sources`.
 
 #### Add All Scene Sources
 
-Добавляет в `Priority Sources` все источники из текущей сцены.
+Adds every source from the current scene to `Priority Sources`.
 
-Полезно для быстрого старта, но потом такой список почти всегда нужно чистить вручную, потому что туда попадут и лишние источники.
+This is useful for a quick first pass, but it often adds too much. In most real setups you will still want to clean up the list afterwards.
 
 #### Add From Current Hooked
 
-Добавляет только те источники из текущей сцены, которые OBS прямо сейчас считает активными и hooked.
+Adds only the sources that are currently active and exposing usable app information to OBS.
 
-Это один из самых удобных способов первоначальной настройки:
+This is often one of the best buttons for initial setup:
 
-- запусти игру
-- сделай так, чтобы её источник реально был активен
-- нажми `Add From Current Hooked`
+1. launch the game
+2. make sure its OBS source is actually active
+3. click `Add From Current Hooked`
 
-Так в список обычно попадают именно рабочие игровые источники, а не всё подряд.
+That usually gives you a cleaner starting list than adding everything from the scene.
 
 #### Clear Priority List
 
-Полностью очищает `Priority Sources`.
+Removes everything from `Priority Sources`.
 
-### Правая колонка у списка Priority Sources
+### The list controls on the right
 
-У самого списка справа есть стандартные кнопки OBS:
+The list itself has the usual OBS editable-list buttons on the right:
 
-- `+` — добавить строку вручную
-- корзина — удалить выбранную строку
-- шестерёнка — действия списка OBS
-- стрелка вверх — поднять выбранный источник выше
-- стрелка вниз — опустить выбранный источник ниже
+- `+` adds a row manually
+- trash deletes the selected row
+- gear opens OBS list actions
+- up moves the selected row higher
+- down moves the selected row lower
 
-Обычно самые полезные здесь — удаление и изменение порядка.
+The most useful actions here are usually delete and reorder.
 
 ## Excluded Sources
 
 ![Excluded Sources](../screenshots/excluded-sources.png)
 
-### Что это такое
+### What this section is for
 
-`Excluded Sources` — это список источников, которые скрипту **запрещено использовать для выбора имени**.
+`Excluded Sources` is a hard deny-list.
 
-Это не просто “второстепенные” источники. Это именно жёсткий стоп-лист.
+If a source is in `Excluded Sources`, the script is not allowed to use it when deciding the replay name, even if:
 
-Если источник находится в `Excluded Sources`, скрипт не должен брать его как основание для имени даже если:
+- the source is active
+- the source is hooked
+- the source is visible
+- the source looks technically valid
 
-- источник активен
-- он hooked
-- он виден в сцене
-- он потенциально подходит по техническим признакам
+This is one of the most important parts of the whole config.
 
-### Почему Excluded настолько важен
+### Why Excluded Sources matters so much
 
-Без `Excluded Sources` скрипт может иногда выбрать не игру, а что-то технически активное:
+Without a good exclude list, the script can sometimes pick something that is active but should never define the replay name, such as:
 
 - Discord
 - Chrome
-- браузер
-- захват экрана
-- рабочий стол
-- любой другой источник, который активен, но не должен влиять на название replay
+- desktop capture
+- browser audio
+- other helper or utility sources
 
-Именно `Excluded Sources` защищает конфиг от таких ложных срабатываний.
+In other words, `Excluded Sources` protects the naming logic from false positives.
 
-### Когда нужно добавлять в Excluded
+### When you should exclude something
 
-Почти всегда имеет смысл исключить:
+A source usually belongs in `Excluded Sources` if it should **never** decide the name of a replay clip.
 
-- Discord
-- Chrome / браузер
-- захват экрана
-- источники рабочего стола
-- вспомогательные аудио-источники, которые не должны определять название клипа
+Common examples:
 
-### Что делают кнопки в этом блоке
+- Discord audio capture
+- browser audio capture
+- desktop capture
+- monitor capture
+- other always-on helper sources
+
+### Controls in this section
 
 #### Excluded Available Sources
 
-Выпадающий список источников текущей сцены для исключения.
+This is the dropdown list of current scene sources that you can choose to exclude.
 
 #### Add Excluded Selected
 
-Добавляет выбранный источник в `Excluded Sources`.
+Adds the selected source to `Excluded Sources`.
 
-Если этот источник был в `Priority Sources`, он будет автоматически удалён оттуда.
+If that source was present in `Priority Sources`, it is removed from the priority list automatically.
 
-Это важный момент: один и тот же источник не должен одновременно быть и приоритетным, и исключённым.
+This is important: a source should not be both trusted and excluded at the same time.
 
 #### Add Excluded From Current Hooked
 
-Добавляет в `Excluded Sources` все текущие hooked-источники.
+Adds all currently hooked sources to `Excluded Sources`.
 
-Этой кнопкой надо пользоваться осторожно.
-
-Она полезна, когда у тебя прямо сейчас активны браузер, Discord или другие лишние hooked-источники, которые ты хочешь быстро отправить в стоп-лист.
+Use this carefully. It is mainly useful when the sources that are currently hooked are exactly the ones you want to block quickly, such as browser or chat-related sources.
 
 #### Clear Excluded List
 
-Полностью очищает список исключений.
+Removes everything from `Excluded Sources`.
 
-### Правая колонка у списка Excluded Sources
+### The list controls on the right
 
-Справа у списка также есть стандартные кнопки OBS:
+Like `Priority Sources`, the excluded list has the usual OBS editable-list buttons:
 
-- `+` — добавить строку вручную
-- корзина — удалить выбранную строку
-- шестерёнка — действия списка OBS
-- стрелка вверх — поднять строку
-- стрелка вниз — опустить строку
+- `+` adds a row manually
+- trash deletes the selected row
+- gear opens OBS list actions
+- up moves the selected row higher
+- down moves the selected row lower
 
-### Главное правило для Excluded
+### Best practice for Excluded Sources
 
-Если источник **никогда не должен определять название replay**, лучше добавить его в `Excluded Sources`, а не просто надеяться, что скрипт “и так выберет что-то другое”.
+If a source should **never** be used as the name of a replay clip, do not leave that decision to chance. Put it in `Excluded Sources`.
 
-`Excluded` нужен именно для того, чтобы убрать такие сомнения и сделать конфиг предсказуемым.
+This is the cleanest way to keep the config stable.
 
 ## Mappings
 
 ![Mappings](../screenshots/mappings-and-preview.png)
 
-### Что это такое
+### What Mappings are
 
-`Mappings` — это правила вида:
+`Mappings` are rules written like this:
 
 ```text
 keyword=FolderName
 ```
 
-Левая часть — это то, что скрипт ищет.
-Правая часть — это то, как ты хочешь назвать игру или папку в итоге.
+The left side is what the script searches for.
+The right side is the clean name you want to use.
 
-### Где скрипт ищет keyword
+### Where the script searches for the keyword
 
-Скрипт проверяет `keyword` сразу в нескольких местах:
+The script checks the keyword against:
 
 - executable
-- title окна
+- window title
 - source name
 
-Совпадение ищется как вхождение подстроки.
+The match is a substring match, not necessarily a full exact string.
 
-То есть правило не обязано быть полным именем файла. Но на практике лучше использовать понятный и устойчивый ключ, чаще всего именно имя `.exe`.
+In practice, the most stable key is usually the executable name.
 
-### Примеры
+### Examples
 
 ```text
 dota2.exe=Dota_2
@@ -267,85 +263,88 @@ helldivers2.exe=Helldivers_2
 ac2-win64-shipping.exe=ACC
 ```
 
-### Что означает правая часть
+### What the right side does
 
-Правая часть (`FolderName`) используется как база для:
+The right side (`FolderName`) becomes the base for:
 
-- имени папки
-- префикса имени файла
+- the replay folder name
+- the replay file prefix
 
-Скрипт нормализует это значение в безопасный для Windows вид:
+The script also normalizes it into a Windows-safe form:
 
-- запрещённые символы заменяются
-- пробелы и повторяющиеся разделители упрощаются
+- invalid filesystem characters are replaced
+- repeated separators are cleaned up
+- spaces are normalized
 
-### Почему Mappings очень важны
+### Why Mappings matters so much
 
-Именно `Mappings` делают результат стабильным и красивым.
+`Mappings` is what turns technical process names into clean, stable names on disk.
 
-Без них скрипт пытается угадать имя автоматически по executable или title, а это не всегда даёт то название, которое ты хочешь видеть на диске.
+Without mappings, the script tries to guess a reasonable name automatically from OBS data. That can work, but it is not always the exact name you want.
 
-С `Mappings` ты сам говоришь скрипту:
+With mappings, you are telling the script:
 
-- какой `.exe` относится к какой игре
-- как именно назвать папку
-- как именно назвать файл
+- which executable belongs to which game
+- what the folder should be called
+- what the filename prefix should look like
 
-### Что делают кнопки в блоке Mappings
+This makes the result much more predictable.
+
+### Controls in this section
 
 #### Build Mappings From Priority Sources
 
-Одна из самых полезных кнопок в скрипте.
+This is one of the most useful buttons in the script.
 
-Она проходит по `Priority Sources`, пытается получить от них executable и автоматически создаёт или обновляет строки в `Mappings`.
+It goes through your `Priority Sources`, tries to read their executable information, and creates or updates mapping lines automatically.
 
-Если хук executable недоступен, скрипт пытается вытащить имя приложения из настроек самого OBS-источника.
+If the executable is not available from the live hook, the script also tries to get it from the OBS source settings.
 
-Это хороший быстрый способ стартовой настройки:
+This makes it a very good first-pass setup button:
 
-1. сначала собираешь правильный `Priority Sources`
-2. потом нажимаешь `Build Mappings From Priority Sources`
-3. потом вручную подправляешь красивые имена справа
+1. build a clean `Priority Sources` list
+2. click `Build Mappings From Priority Sources`
+3. manually polish the generated names on the right side
 
 #### Mappings: Deduplicate
 
-Удаляет дубликаты ключей в `Mappings`.
+Removes duplicate mapping keys.
 
-Если одно и то же правило встречается несколько раз, остаётся одна итоговая запись.
+If the same key appears several times, the script keeps a single final rule.
 
 #### Mappings: Remove Invalid
 
-Удаляет некорректные строки:
+Removes broken or incomplete lines, such as:
 
-- пустые
-- сломанные
-- без ключа
-- без значения справа
+- empty lines
+- malformed rules
+- entries without a left side
+- entries without a right side
 
-### Лучший способ пользоваться Mappings
+### Best practice for Mappings
 
-Практически удобнее всего так:
+The most practical workflow is usually:
 
-1. заполнить `Priority Sources`
-2. настроить `Excluded Sources`
-3. нажать `Build Mappings From Priority Sources`
-4. отредактировать правую часть вручную так, как ты хочешь видеть названия на диске
+1. build `Priority Sources`
+2. set up `Excluded Sources`
+3. click `Build Mappings From Priority Sources`
+4. manually edit the right side so the final names look exactly how you want
 
 ## Max File Prefix Length
 
-Ограничивает максимальную длину имени игры, которое попадёт в начало файла.
+Limits how long the replay name prefix is allowed to be.
 
-Если имя слишком длинное, скрипт обрежет его до указанной длины.
+If the generated name is too long, the script trims it to this value.
 
-Обычно `80` — нормальное и безопасное значение.
+`80` is usually a safe and reasonable value.
 
-## Check Formatting и Formatting Result
+## Check Formatting and Formatting Result
 
 ### Check Formatting
 
-Пересчитывает текущий результат и обновляет блок `Formatting Result`.
+Recalculates the current result and refreshes the `Formatting Result` box.
 
-Используй эту кнопку после изменения:
+Use this after changing:
 
 - `Priority Sources`
 - `Excluded Sources`
@@ -353,48 +352,51 @@ ac2-win64-shipping.exe=ACC
 
 ### Formatting Result
 
-В этом блоке ты видишь предварительный результат:
+This box shows a preview of the current result, including:
 
-- как примерно будет называться файл
-- в какую папку он должен попасть
-- откуда взято имя
-- где лежит bridge state плагина
+- an example file name
+- the expected save path
+- where the current name came from
+- the plugin bridge state path
 
-Обычно там есть такие строки:
+You will usually see lines such as:
 
-- `Formatting result:` — пример имени будущего файла
-- `Save path:` — полный ожидаемый путь
-- `Name source:` — откуда был взят текущий вариант имени
-- `Bridge state:` — путь к `state.txt` плагина
+- `Formatting result:` - example of the generated file name
+- `Save path:` - expected full output path
+- `Name source:` - which logic path produced the name
+- `Bridge state:` - path to the plugin state file
 
-## Рекомендуемый порядок первой настройки
+## Recommended first-time setup
 
-Если делать конфиг с нуля, самый удобный порядок такой:
+If you are starting from scratch, this order usually works best:
 
-1. Включить `Enable Script`
-2. Нажать `Refresh Sources`
-3. Добавить игровые источники в `Priority Sources`
-4. Добавить Discord, Chrome, захват экрана и другие лишние источники в `Excluded Sources`
-5. Нажать `Build Mappings From Priority Sources`
-6. Отредактировать `Mappings` вручную
-7. Нажать `Check Formatting`
-8. Проверить `Formatting Result`
-9. Сделать тестовое сохранение Replay Buffer
+1. Enable `Enable Script`
+2. Click `Refresh Sources`
+3. Add your actual game sources to `Priority Sources`
+4. Add Discord, Chrome, desktop capture, and other non-game sources to `Excluded Sources`
+5. Click `Build Mappings From Priority Sources`
+6. Manually clean up the mapping names
+7. Click `Check Formatting`
+8. Review `Formatting Result`
+9. Test a Replay Buffer save
 
-## Практический совет по конфигу
+## Practical troubleshooting advice
 
-Если скрипт иногда выбирает не ту программу, проблема чаще всего не в самом rename, а в конфиге:
+If the script chooses the wrong name, the problem is usually not the final rename step. It is usually one of these:
 
-- либо в `Priority Sources` слишком много лишнего
-- либо в `Excluded Sources` не исключены Discord/браузер/desktop capture
-- либо в `Mappings` нет устойчивых правил по `.exe`
+- too many irrelevant sources in `Priority Sources`
+- not enough sources blocked in `Excluded Sources`
+- weak or missing `Mappings`
 
-Самые важные рычаги настройки — это именно `Excluded Sources` и `Mappings`.
+In real use, the two strongest tools for making the config stable are:
 
-## Короткое резюме
+- a strict `Excluded Sources` list
+- clear executable-based `Mappings`
 
-- `Priority Sources` — список доверенных источников, которые скрипт смотрит в первую очередь.
-- `Excluded Sources` — жёсткий список источников, которые никогда не должны влиять на имя replay.
-- `Mappings` — правила, которые превращают технические названия процессов в нормальные игровые названия папок и файлов.
+## Short summary
 
-Если эти три части настроены аккуратно, скрипт начинает работать предсказуемо и стабильно.
+- `Priority Sources` = the trusted sources the script checks first
+- `Excluded Sources` = the hard deny-list of sources that must never define the replay name
+- `Mappings` = the rules that convert technical app names into clean folder and file names
+
+If those three parts are configured well, the script becomes much more predictable and stable.
