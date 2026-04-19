@@ -50,6 +50,21 @@ The project is split into two parts on purpose:
 
 Use both files together.
 
+## When the plugin is actually required
+
+If you only care about **standard OBS recording names**, the Lua script can still be useful on its own. Standard recording naming already works through the normal OBS recording-start path, so this part does not depend on the plugin in the same way.
+
+The plugin is specifically needed for the **Replay Buffer workflow**:
+
+- tracking the relevant active app before replay save
+- reliably finding the saved replay file
+- moving and renaming the replay after OBS writes it
+
+So the short version is:
+
+- standard recording only: the script can still be useful by itself
+- Replay Buffer: use the script **and** the plugin together
+
 ## Tested environment
 
 - Windows 10/11 x64
@@ -90,6 +105,8 @@ Detailed setup guide with screenshots:
 - Because of that, the final rename happens after OBS saves the replay file.
 - This is expected behavior for this project.
 - If OBS `Auto Remux` is enabled, the final moved file may be `mp4` only. This is expected.
+- The script now also supports an optional manual filename template override for date/time-based naming.
+- `Filename Template Override` is mainly useful for Replay Buffer consistency. Standard recording naming already works without filling that field.
 
 ## Repository structure
 

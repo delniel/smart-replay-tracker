@@ -9,6 +9,8 @@ local settings_ref = nil
 local script_enabled = true
 local debug_logging = true
 local max_prefix_length = 80
+local filename_template_override = ""
+local keep_original_mkv_after_remux = false
 
 local selected_sources = {}
 local excluded_sources = {}
@@ -90,6 +92,11 @@ end
 
 local function get_output_filename_template(preferred_template)
     local value = trim(preferred_template or "")
+    if value ~= "" then
+        return value
+    end
+
+    value = trim(filename_template_override or "")
     if value ~= "" then
         return value
     end
@@ -806,6 +813,7 @@ local function write_bridge_move_request(folder, prefix)
     file:write("folder=", tostring(normalize_segment(folder)), "\n")
     file:write("prefix=", tostring(normalize_segment(prefix)), "\n")
     file:write("target_stem=", tostring(target_stem), "\n")
+    file:write("keep_original_mkv=", keep_original_mkv_after_remux and "1" or "0", "\n")
     file:close()
     return true, path
 end
@@ -1352,6 +1360,11 @@ function script_properties()
     obs.obs_properties_add_button(props, "map_clean", "Mappings: Remove Invalid", on_remove_invalid_mappings_clicked)
 
     obs.obs_properties_add_int(props, "max_prefix_length", "Max File Prefix Length", 20, 180, 1)
+    obs.obs_properties_add_text(
+        props, "filename_template_override", "Filename Template Override (optional, OBS date tokens)",
+        obs.OBS_TEXT_DEFAULT
+    )
+    obs.obs_properties_add_bool(props, "keep_original_mkv_after_remux", "Keep MKV After Auto Remux")
 
     obs.obs_properties_add_button(props, "check_formatting", "Check Formatting", on_check_formatting_clicked)
     local preview = obs.obs_properties_add_text(props, "check_formatting_result", "Formatting Result", obs.OBS_TEXT_INFO)
@@ -1368,6 +1381,8 @@ function script_defaults(settings)
     obs.obs_data_set_default_array(settings, "excluded_sources", nil)
     obs.obs_data_set_default_string(settings, "mappings_raw", mappings_raw)
     obs.obs_data_set_default_int(settings, "max_prefix_length", 80)
+    obs.obs_data_set_default_string(settings, "filename_template_override", "")
+    obs.obs_data_set_default_bool(settings, "keep_original_mkv_after_remux", false)
 end
 
 function script_update(settings)
@@ -1376,6 +1391,8 @@ function script_update(settings)
     debug_logging = obs.obs_data_get_bool(settings, "debug_logging")
     mappings_raw = obs.obs_data_get_string(settings, "mappings_raw") or mappings_raw
     max_prefix_length = obs.obs_data_get_int(settings, "max_prefix_length")
+    filename_template_override = obs.obs_data_get_string(settings, "filename_template_override") or ""
+    keep_original_mkv_after_remux = obs.obs_data_get_bool(settings, "keep_original_mkv_after_remux")
 
     if max_prefix_length < 20 then max_prefix_length = 20 end
 

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.3
+
+- Added `Filename Template Override` for custom OBS date/time filename patterns
+- Added `Keep MKV After Auto Remux` so users can keep both the original `mkv` and the final `mp4`
+- Improved replay app selection so the project is less likely to keep using the previous game's folder and name after switching apps
+- Updated the bundled DLL and Lua script in `release/`
+- Expanded the documentation with new screenshots and setup details for the new options
+
 ## v1.0.2
 
 - Fixed stale replay routing when OBS does not expose a working `saving` signal

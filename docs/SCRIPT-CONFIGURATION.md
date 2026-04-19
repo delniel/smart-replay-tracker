@@ -7,6 +7,9 @@ If you only want the short version:
 - `smart-replay-tracker.dll` watches the last relevant active app and safely moves the saved replay file.
 - `replay-file-organizer.lua` decides **what the clip should be called and which folder it should go to**.
 
+If you only care about standard recording names, the script can still be useful on its own.
+The plugin is specifically needed for the Replay Buffer workflow.
+
 That makes these three areas the most important parts of the configuration:
 
 - `Priority Sources`
@@ -34,6 +37,28 @@ The plugin and the script work together like this:
 8. The plugin moves the saved replay file to the final destination after OBS finishes saving it.
 
 If OBS `Auto Remux` is enabled, the final moved file may be `mp4` only. That is expected and does not mean the rename failed.
+
+## Basic switches
+
+![Basic switches](../screenshots/01-enable-options.png)
+
+### Enable Script
+
+Turns the Lua script on or off.
+
+If this is disabled, the script stops handling naming logic and replay routing.
+
+### Enable Debug Logging
+
+Adds more detailed information to the OBS log.
+
+This is useful when:
+
+- the wrong game is being selected
+- the wrong folder is being chosen
+- you want to see whether the script is using OBS source data or plugin state
+
+For normal daily use, you can keep it off.
 
 ## What "hooked" means here
 
@@ -64,7 +89,7 @@ The script tries to decide the name in this order:
 
 ## Priority Sources
 
-![Priority Sources](../screenshots/priority-sources.png)
+![Priority Sources](../screenshots/02-priority-sources.png)
 
 ### What this section is for
 
@@ -79,18 +104,6 @@ The order of `Priority Sources` matters.
 If several sources could match, the ones higher in the list are checked first. So if a game source should win over something else, keep it higher.
 
 ### Controls in this section
-
-#### Enable Script
-
-Turns the Lua script on or off.
-
-If this is disabled, the script stops handling naming logic and replay routing.
-
-#### Enable Debug Logging
-
-Adds more detailed information to the OBS log.
-
-This is useful for troubleshooting when the chosen name is not what you expected. For normal daily use, you can keep it off.
 
 #### Refresh Sources
 
@@ -150,7 +163,7 @@ The most useful actions here are usually delete and reorder.
 
 ## Excluded Sources
 
-![Excluded Sources](../screenshots/excluded-sources.png)
+![Excluded Sources](../screenshots/03-excluded-sources.png)
 
 ### What this section is for
 
@@ -231,7 +244,7 @@ This is the cleanest way to keep the config stable.
 
 ## Mappings
 
-![Mappings](../screenshots/mappings-and-preview.png)
+![Mappings](../screenshots/04-mappings.png)
 
 ### What Mappings are
 
@@ -340,6 +353,71 @@ If the generated name is too long, the script trims it to this value.
 
 `80` is usually a safe and reasonable value.
 
+## Filename Template Override
+
+![Template Override and MKV option](../screenshots/05-template-and-mkv.png)
+
+This optional field lets you enter the filename date/time template manually instead of relying only on the current OBS `FilenameFormatting` value.
+
+This field is mainly useful for **Replay Buffer naming consistency**.
+
+For standard OBS recording, the usual recording rename logic already works without filling this field. In many setups you can leave it empty unless you specifically want Replay Buffer post-save filenames to follow the exact same template as your OBS recording settings.
+
+Use this when:
+
+- you changed the OBS filename format
+- you want the final moved replay file to follow that same date/time pattern
+- you want to avoid relying on the default built-in template
+
+The easiest rule is:
+
+- open OBS recording settings
+- find the current `Filename Formatting` value
+- copy the same text into `Filename Template Override` if you want Replay Buffer final files to follow the same pattern
+
+Example:
+
+```text
+%CCYY-%MM-%DD %hh-%mm-%ss
+```
+
+Reference screenshot from OBS:
+
+![OBS recording settings](../screenshots/07-obs-recording-settings.png)
+
+This works best with common OBS date/time tokens such as:
+
+- `%CCYY`
+- `%YY`
+- `%MM`
+- `%DD`
+- `%hh`
+- `%mm`
+- `%ss`
+
+If the field is empty, the script falls back to the current OBS filename formatting.
+
+If you use common OBS date/time tokens, this works best with:
+
+- `%CCYY`
+- `%YY`
+- `%MM`
+- `%DD`
+- `%hh`
+- `%mm`
+- `%ss`
+
+## Keep MKV After Auto Remux
+
+If OBS `Auto Remux` is enabled, OBS can end up producing a final `mp4` from an original `mkv`.
+
+This option lets you choose what happens after remux:
+
+- disabled: keep only the final `mp4`
+- enabled: keep both the moved `mp4` and the original `mkv`
+
+If `Auto Remux` is disabled, this setting usually has no effect because there is no extra `mp4` conversion step.
+
 ## Check Formatting and Formatting Result
 
 ### Check Formatting
@@ -353,6 +431,8 @@ Use this after changing:
 - `Mappings`
 
 ### Formatting Result
+
+![Formatting Result](../screenshots/06-formatting-result.png)
 
 This box shows a preview of the current result, including:
 
