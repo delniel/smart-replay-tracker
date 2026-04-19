@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.4
+
+- Fixed a remux timing issue that could occasionally create two `mp4` files for the same replay
+- Removed the risky fallback copy path for replay moves so the plugin now waits for the remuxed file to be ready instead of creating a partial duplicate
+- Updated the bundled plugin DLL in `release/`
+
 ## v1.0.3
 
 - Added `Filename Template Override` for custom OBS date/time filename patterns
