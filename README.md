@@ -74,6 +74,7 @@ Use both files together.
 Detailed setup guide with screenshots:
 
 - [Script configuration guide](docs/SCRIPT-CONFIGURATION.md)
+- [Changelog](CHANGELOG.md)
 
 ## Basic usage
 
