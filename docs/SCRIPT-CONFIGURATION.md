@@ -307,6 +307,26 @@ This makes the result much more predictable.
 
 ### Controls in this section
 
+#### Mapping Source
+
+This dropdown lets you choose a single source from the current OBS scene and build one mapping from it.
+
+Use it when you add a new game source and do not want to rebuild mappings from the whole priority list.
+
+#### Add Mapping From Selected Source
+
+Creates or updates one mapping line from the selected `Mapping Source`.
+
+The script tries to read the executable from the live hook first. If the source is not hooked at that moment, it falls back to the executable stored in the OBS source settings.
+
+Example result:
+
+```text
+brawlhalla.exe=Brawlhalla
+```
+
+If the selected source has no executable information, the script skips it and writes a debug log entry if debug logging is enabled.
+
 #### Build Mappings From Priority Sources
 
 This is one of the most useful buttons in the script.
@@ -342,7 +362,7 @@ The most practical workflow is usually:
 
 1. build `Priority Sources`
 2. set up `Excluded Sources`
-3. click `Build Mappings From Priority Sources`
+3. use `Add Mapping From Selected Source` for one new source, or `Build Mappings From Priority Sources` for a full first pass
 4. manually edit the right side so the final names look exactly how you want
 
 ## Max File Prefix Length

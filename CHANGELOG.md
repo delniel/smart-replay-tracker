@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.5
+
+- Added `Mapping Source`, a dedicated source dropdown for building one mapping at a time
+- Added `Add Mapping From Selected Source` for quickly creating or updating a mapping from one selected OBS source
+- Updated the bundled Lua script in `release/`
+- Updated the script configuration guide with the new mapping workflow
+
 ## v1.0.4
 
 - Fixed a remux timing issue that could occasionally create two `mp4` files for the same replay

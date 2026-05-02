@@ -18,6 +18,7 @@ local excluded_set = {}
 local available_sources = {}
 local available_source_selected = ""
 local excluded_available_source_selected = ""
+local mapping_available_source_selected = ""
 
 local mappings_raw = [[
 dota2.exe=Dota2
@@ -291,6 +292,13 @@ local function rebuild_available_sources(props)
             obs.obs_property_list_clear(p2)
             for _, n in ipairs(available_sources) do
                 obs.obs_property_list_add_string(p2, n, n)
+            end
+        end
+        local p3 = obs.obs_properties_get(props, "mapping_available_source")
+        if p3 ~= nil then
+            obs.obs_property_list_clear(p3)
+            for _, n in ipairs(available_sources) do
+                obs.obs_property_list_add_string(p3, n, n)
             end
         end
     end
@@ -1129,6 +1137,11 @@ local function on_excluded_available_source_modified(_, _, settings)
     return true
 end
 
+local function on_mapping_available_source_modified(_, _, settings)
+    mapping_available_source_selected = trim(obs.obs_data_get_string(settings, "mapping_available_source") or "")
+    return true
+end
+
 local function on_add_selected_clicked(_, _)
     local name = available_source_selected
     if name == "" and settings_ref ~= nil then
@@ -1226,6 +1239,25 @@ local function on_build_mappings_clicked(_, _)
                 upsert_mapping_line(line)
             end
         end
+    end
+    return true
+end
+
+local function on_add_mapping_selected_clicked(_, _)
+    local name = mapping_available_source_selected
+    if name == "" and settings_ref ~= nil then
+        name = trim(obs.obs_data_get_string(settings_ref, "mapping_available_source") or "")
+    end
+    if name == "" then
+        return true
+    end
+
+    local line = build_mapping_line_from_source(name)
+    if line ~= nil then
+        upsert_mapping_line(line)
+        debug_log("added mapping from selected source: " .. line)
+    else
+        debug_log("mapping skipped; selected source has no executable: " .. tostring(name))
     end
     return true
 end
@@ -1355,6 +1387,12 @@ function script_properties()
         props, "mappings_raw", "Mappings (keyword=FolderName per line)",
         obs.OBS_TEXT_MULTILINE
     )
+    local mapping_available = obs.obs_properties_add_list(
+        props, "mapping_available_source", "Mapping Source",
+        obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING
+    )
+    obs.obs_property_set_modified_callback(mapping_available, on_mapping_available_source_modified)
+    obs.obs_properties_add_button(props, "add_mapping_selected", "Add Mapping From Selected Source", on_add_mapping_selected_clicked)
     obs.obs_properties_add_button(props, "build_mappings", "Build Mappings From Priority Sources", on_build_mappings_clicked)
     obs.obs_properties_add_button(props, "map_dedup", "Mappings: Deduplicate", on_dedup_mappings_clicked)
     obs.obs_properties_add_button(props, "map_clean", "Mappings: Remove Invalid", on_remove_invalid_mappings_clicked)
@@ -1380,6 +1418,7 @@ function script_defaults(settings)
     obs.obs_data_set_default_array(settings, "selected_sources", nil)
     obs.obs_data_set_default_array(settings, "excluded_sources", nil)
     obs.obs_data_set_default_string(settings, "mappings_raw", mappings_raw)
+    obs.obs_data_set_default_string(settings, "mapping_available_source", "")
     obs.obs_data_set_default_int(settings, "max_prefix_length", 80)
     obs.obs_data_set_default_string(settings, "filename_template_override", "")
     obs.obs_data_set_default_bool(settings, "keep_original_mkv_after_remux", false)
@@ -1398,6 +1437,7 @@ function script_update(settings)
 
     available_source_selected = trim(obs.obs_data_get_string(settings, "available_source") or "")
     excluded_available_source_selected = trim(obs.obs_data_get_string(settings, "excluded_available_source") or "")
+    mapping_available_source_selected = trim(obs.obs_data_get_string(settings, "mapping_available_source") or "")
     selected_sources = load_string_array(settings, "selected_sources")
     excluded_sources = load_string_array(settings, "excluded_sources")
     rebuild_excluded_set()
